@@ -1,37 +1,63 @@
 import { ethers } from "hardhat";
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { expect } from "chai";
+import { deploySetupFixture } from "./fixtures/deploySetupFixture";
 
 describe("Test AMM Core", async () => {
-  let deployerAddress,
-    erc20deployerAddress,
-    ammAddress,
-    userAAddress,
-    userBAddress,
-    ammContract,
-    tokenAContract,
-    tokenBContract;
-  beforeEach(async () => {
-    [deployerAddress, userAAddress, userBAddress, erc20deployerAddress] =
-      await ethers.getSigners();
+  describe("Should Add Liquidity", async () => {
+    it("should emit add liquidity event", async () => {
+      const {
+        deployer,
+        erc20deployer,
+        userA,
+        userB,
+        ammContract,
+        tokenAContract,
+        tokenBContract,
+      } = await loadFixture(deploySetupFixture);
 
-    // deploying AMM contract
-    const ammContractFactory = await ethers.getContractFactory(
-      "CPAMM",
-      deployerAddress
-    );
-    ammContract = await ammContractFactory.deploy();
-    await ammContract.deployed();
-    ammAddress = ammContract.address;
+      const liquidityTokenA = ethers.utils.parseEther("10");
+      const liquidityTokenB = ethers.utils.parseEther("10");
+      await tokenAContract
+        .connect(userA)
+        .approve(ammContract.address, liquidityTokenA);
+      await tokenBContract
+        .connect(userA)
+        .approve(ammContract.address, liquidityTokenB);
 
-    // deploying Token A, Token B
-    const tokenFactory = await ethers.getContractFactory(
-      "MockERC20",
-      erc20deployerAddress
-    );
+      expect(
+        await ammContract
+          .connect(userA)
+          .addLiquidity(liquidityTokenA, liquidityTokenB)
+      )
+        .to.emit(ammContract, "LiquidityAdded")
+        .withArgs(liquidityTokenA, liquidityTokenB, userA.address);
+    });
 
-    tokenAContract = await tokenFactory.deploy();
-    await tokenAContract.deployed();
-
-    tokenBContract = await tokenFactory.deploy();
-    await tokenBContract.deployed();
+    it("should increase totalSupply", async () => {
+      const {
+        deployer,
+        erc20deployer,
+        userA,
+        userB,
+        ammContract,
+        tokenAContract,
+        tokenBContract,
+      } = await loadFixture(deploySetupFixture);
+      const liquidityTokenA = ethers.utils.parseEther("10");
+      const liquidityTokenB = ethers.utils.parseEther("10");
+      await tokenAContract
+        .connect(userA)
+        .approve(ammContract.address, liquidityTokenA);
+      await tokenBContract
+        .connect(userA)
+        .approve(ammContract.address, liquidityTokenB);
+      await ammContract
+        .connect(userA)
+        .addLiquidity(liquidityTokenA, liquidityTokenB);
+      expect(await ammContract.totalSupply()).to.equal(
+        ethers.utils.parseEther("20")
+      );
+    });
   });
 });
