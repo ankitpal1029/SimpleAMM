@@ -23,6 +23,7 @@ contract CPAMM {
     error AmountInZero();
     error LiquidityCanLeadToPriceChange();
     error CannotMintZeroShares();
+    error AmountTokensZeroAfterBurningShare();
 
     event LiquidityAdded(uint amount0, uint amount1, address liqiudityProvider);
 
@@ -108,8 +109,24 @@ contract CPAMM {
 
     }
 
-    function removeLiquidity() external {
+    function removeLiquidity(uint _shares) external returns(uint _amount0, uint _amount1) {
+        // amount0, amount1 to withdraw
+        // dx = s / T * x
+        // dy = s / T * y
+        // burn shares and 
+        uint bal0 = token0.balanceOf(address(this));
+        uint bal1 = token1.balanceOf(address(this));
 
+        _amount0 = (_shares * bal0)/ totalSupply;
+        _amount1 = (_shares * bal1)/ totalSupply;
+        if(_amount0 == 0 ||_amount1 == 0){
+            revert AmountTokensZeroAfterBurningShare();
+        }
+
+        _burn(msg.sender, _shares);
+        _update(bal0 - _amount0, bal1 - _amount1);
+        token0.transfer(msg.sender, _amount0);
+        token1.transfer(msg.sender, _amount1);
     }
 
 }
