@@ -27,6 +27,16 @@ contract StakingRewards {
         _;
     }
 
+    modifier updateReward(address _account) {
+        rewardPerTokenStored = rewardPerToken();
+        updatedAt = lastTimeRewardApplicable();
+        if(_account != address(0)) {
+            rewards[_account] = earned(_account);
+            userRewardPerTokenPaid[_account] = rewardPerTokenStored;
+        }
+        _;
+    }
+
     constructor(address _stakingToken, address _rewardsToken) {
         owner = msg.sender;
         stakingToken = IERC20(_stakingToken);
@@ -53,12 +63,39 @@ contract StakingRewards {
     }
 
 
-    function stake(uint _amount) external {}
+    function stake(uint _amount) external {
+        require(_amount >0, "amount = 0");
 
-    function withdraw(uint _amount) external {}
+        stakingToken.transferFrom(msg.sender, address(this), _amount);
+        balanceOf[msg.sender] += _amount;
+        totalSupply += _amount;
+    }
 
-    function earned(uint _account) external view returns(uint) {
+    function withdraw(uint _amount) external {
+        require(_amount > 0, "amount = 0");
+        balanceOf[msg.sender] -= _amount;
+        totalSupply -= _amount;
+        stakingToken.transfer(msg.sender, _amount);
 
+    }
+
+    function _min(uint x, uint y) private pure returns(uint) {
+        return x <= y ? x : y;
+    }
+
+    function lastTimeRewardApplicable() public view returns (uint) {
+        return _min(block.timestamp, finishAt);
+    }
+
+    function rewardPerToken() public view returns(uint) {
+        if(totalSupply == 0) {
+            return rewardPerTokenStored;
+        }
+        return rewardPerTokenStored + (rewardRate * (lastTimeRewardApplicable() - updatedAt) * 1e18) / totalSupply;
+    }
+
+    function earned(address _account) public view returns(uint) {
+        return balanceOf[_account] * ((rewardPerToken() - userRewardPerTokenPaid[_account])/ 1e18) + rewards[_account];
     }
 
     function getReward() external {}
