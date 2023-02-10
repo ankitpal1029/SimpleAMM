@@ -25,7 +25,8 @@ contract CPAMM {
     error CannotMintZeroShares();
     error AmountTokensZeroAfterBurningShare();
 
-    event LiquidityAdded(uint amount0, uint amount1, address liqiudityProvider);
+    event LiquidityAdded(uint shares, uint amount0, uint amount1, address liqiudityProvider);
+    event LiquidityRemoved(uint shares, uint token0Released, uint token1Released, address liquidityProvider);
 
     constructor(address _token0, address _token1){
         token0 = IERC20(_token0);
@@ -106,6 +107,7 @@ contract CPAMM {
         _mint(msg.sender, shares);
         // update reserves
         _update(token0.balanceOf(address(this)), token1.balanceOf(address(this)));
+        emit LiquidityAdded(shares, _amount0, _amount1, msg.sender);
 
     }
 
@@ -127,6 +129,8 @@ contract CPAMM {
         _update(bal0 - _amount0, bal1 - _amount1);
         token0.transfer(msg.sender, _amount0);
         token1.transfer(msg.sender, _amount1);
+        // LiquidityRemoved(uint shares, uint token0Released, uint token1Released, address liquidityProvider)
+        emit LiquidityRemoved(_shares, _amount0, _amount1, msg.sender);
     }
 
 }

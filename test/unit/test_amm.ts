@@ -4,7 +4,7 @@ import { expect } from "chai";
 import { deploySetupFixture } from "./fixtures/deploySetupFixture";
 
 describe("Test AMM Core", async () => {
-  describe("Should Add Liquidity", async () => {
+  describe("Test Add Liquidity", async () => {
     it("should emit add liquidity event", async () => {
       const {
         deployer,
@@ -25,16 +25,21 @@ describe("Test AMM Core", async () => {
         .connect(userA)
         .approve(ammContract.address, liquidityTokenB);
 
-      expect(
+      await expect(
         await ammContract
           .connect(userA)
           .addLiquidity(liquidityTokenA, liquidityTokenB)
       )
         .to.emit(ammContract, "LiquidityAdded")
-        .withArgs(liquidityTokenA, liquidityTokenB, userA.address);
+        .withArgs(
+          liquidityTokenA,
+          liquidityTokenA,
+          liquidityTokenB,
+          userA.address
+        );
     });
 
-    it("should increase totalSupply", async () => {
+    it("should increase totalSupply and reserves", async () => {
       const {
         deployer,
         erc20deployer,
@@ -55,9 +60,33 @@ describe("Test AMM Core", async () => {
       await ammContract
         .connect(userA)
         .addLiquidity(liquidityTokenA, liquidityTokenB);
-      expect(await ammContract.totalSupply()).to.equal(
+
+      expect(await ammContract.totalSupply()).to.deep.equal(
         ethers.utils.parseEther("20")
       );
+
+      expect(await ammContract.reserve0()).to.deep.equal(
+        ethers.utils.parseEther("20")
+      );
+
+      expect(await ammContract.reserve1()).to.deep.equal(
+        ethers.utils.parseEther("20")
+      );
+    });
+  });
+
+  describe("Test Removing Liquidity", async () => {
+    it("Should emit Remove Liquidity event", async () => {
+      const {
+        deployer,
+        erc20deployer,
+        userA,
+        userB,
+        ammContract,
+        tokenAContract,
+        tokenBContract,
+      } = await loadFixture(deploySetupFixture);
+      // ammContract.connect(deployer).removeLiquidity()
     });
   });
 });
