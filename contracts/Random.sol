@@ -10,6 +10,10 @@ contract Random {
 
     function randomFunction() external returns(uint) {
         emit RandomFunctionCalled(msg.sender);
-        return 1;
+        return 69;
+    }
+
+    function returnFunction() external pure returns(uint) {
+        return 69;
     }
 }
